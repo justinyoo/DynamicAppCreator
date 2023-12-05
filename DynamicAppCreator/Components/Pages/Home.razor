@@ -1,0 +1,23 @@
+﻿@page "/"
+
+@using Microsoft.AspNetCore.Authorization
+
+@inject  DynamicAppCreator.SqlManagement.ServerManagement sm;
+
+@attribute [Authorize]
+<PageTitle>Home</PageTitle>
+ 
+<table>
+  
+    <tbody>
+        @foreach (var item in sm.GetServers().Result)
+        {
+            <tr>
+                <td>@item.Name</td>
+                <td>@item.Description</td>
+                <td>@item.Server</td>
+                <td>@item.DefaultDb</td> 
+            </tr>
+        }
+    </tbody>
+</table>

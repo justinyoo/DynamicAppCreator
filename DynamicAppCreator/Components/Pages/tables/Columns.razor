@@ -1,0 +1,461 @@
+﻿@page "/tables/{tableid}/columns"
+
+@using Microsoft.AspNetCore.Authorization
+
+@inject DynamicAppCreator.SqlManagement.TableManagement sm;
+@inject DynamicAppCreator.Data.ApplicationDbContext dbContext;
+@inject NavigationManager NavManager
+@attribute [Authorize]
+<PageTitle>Servers</PageTitle>
+<DynamicAppCreator.Components.Common.Toolbar>
+    <DynamicAppCreator.Components.Common.ToolButton Uri="@($"/tables/{Input.Database}")">BACK TO LIST</DynamicAppCreator.Components.Common.ToolButton>
+    <button @onclick="this.addNewColumn" class="btn btn-primary btn-sm">Add New Column</button>
+    <button @onclick="this.updatetable" class="btn btn-primary btn-sm">Save Changes</button>
+</DynamicAppCreator.Components.Common.Toolbar>
+
+<div class="container-fluid">
+    <div class="row">
+        <div class="col-6">
+            <table class="table table-hover table-bordered">
+                <tbody>
+                    @{
+                        foreach (var columns in ActiveColumns)
+                        {
+                            <tr>
+                                <td>@columns.Name</td>
+                                <td>@columns.Description</td>
+                                <td>
+                                    @{
+                                        if (columns.Properties.isPrimary)
+                                        {
+                                            <span>Primary key</span>
+                                        }
+                                        if (columns.Properties.isUnique)
+                                        {
+                                            <span>Unique</span>
+                                        }
+                                        if (columns.Properties.AllowNull)
+                                        {
+                                            <span>Allow Null</span>
+                                        }
+                                    }
+                                </td>
+                                <td>
+                                    @{
+
+                                        <button @onclick="@(()=>{this.selectColumn(columns) ;})">Edit</button>
+
+                                    }
+
+                                </td>
+                            </tr>
+                        }
+                    }
+                </tbody>
+            </table>
+
+        </div>
+        <div class="col-6">
+
+            @{
+
+                if (selectedColumn != null)
+                {
+                    if (selectedColumn.Binding == null)
+                    {
+                        selectedColumn.Binding = new DAC.core.models.ColumnBinding();
+                    }
+
+                    
+
+                    <EditForm Model="selectedColumn" OnValidSubmit="updatetable">
+
+                        <ul class="nav nav-tabs " id="myTab" role="tablist">
+                            <li class="nav-item" role="presentation">
+                                <button class="nav-link active" id="home-tab" data-bs-toggle="tab" data-bs-target="#home-tab-pane" type="button" role="tab" aria-controls="home-tab-pane" aria-selected="true">General Settings</button>
+                            </li>
+                            <li class="nav-item" role="presentation">
+                                <button class="nav-link" id="profile-tab" data-bs-toggle="tab" data-bs-target="#profile-tab-pane" type="button" role="tab" aria-controls="profile-tab-pane" aria-selected="false">Properties</button>
+                            </li>
+                            <li class="nav-item" role="presentation">
+                                <button class="nav-link" id="contact-tab" data-bs-toggle="tab" data-bs-target="#contact-tab-pane" type="button" role="tab" aria-controls="contact-tab-pane" aria-selected="false">Binding</button>
+                            </li>
+                            <li class="nav-item" role="presentation">
+                                <button class="nav-link" id="disabled-tab" data-bs-toggle="tab" data-bs-target="#disabled-tab-pane" type="button" role="tab" aria-controls="disabled-tab-pane" aria-selected="false"  >Automation</button>
+                            </li>
+                        </ul>
+                        <div class="tab-content" id="myTabContent">
+                            <div class="tab-pane fade show active" id="home-tab-pane" role="tabpanel" aria-labelledby="home-tab" tabindex="0">
+                                @selectedColumn.Name
+
+                                <div class="form-floating mb-3">
+                                    <InputSelect @bind-Value="selectedColumn.DataType" class="form-control">
+                                        @{
+
+                                            foreach (var dt in Enum.GetValues(typeof(Microsoft.SqlServer.Management.Smo.SqlDataType)))
+                                            {
+                                                <option value="@dt">@dt.ToString()</option>
+                                            }
+                                        }
+                                    </InputSelect>
+                                    <label for="DataType" class="form-label">DataType</label>
+                                    <ValidationMessage For="() => selectedColumn.DataType" class="text-danger" />
+                                </div>
+
+                                <div class="form-floating mb-3">
+                                    <InputText @bind-Value="selectedColumn.Length" class="form-control" aria-required="true" />
+                                    <label for="selectedColumn.Length" class="form-label">Length</label>
+                                    <ValidationMessage For="() => selectedColumn.Length" class="text-danger" />
+                                </div>
+
+                                <div class="form-floating mb-3">
+                                    <InputText @bind-Value="selectedColumn.Description" class="form-control" aria-required="true" />
+                                    <label for="Description" class="form-label">Description</label>
+                                    <ValidationMessage For="() => selectedColumn.Description" class="text-danger" />
+                                </div>
+
+                                <h6>Order Settings</h6>
+                                <div class="form-check mb-3">
+                                    <InputCheckbox @bind-Value="selectedColumn.DataOrder.Enabled" class="form-check-input" aria-required="true" />
+                                    <label for="Enabled" class="form-check-label">Auto Order Enabled</label>
+                                    <ValidationMessage For="() => selectedColumn.DataOrder.Enabled" class="text-danger" />
+
+                                </div>
+                                <div class="form-floating mb-3">
+                                    <InputNumber @bind-Value="selectedColumn.DataOrder.Order" class="form-control" aria-required="true" />
+                                    <label for="Order" class="form-label">Auto Order Sequence</label>
+                                    <ValidationMessage For="() => selectedColumn.DataOrder.Order" class="text-danger" />
+
+                                </div>
+
+                                <div class="form-check mb-3">
+                                    <InputCheckbox @bind-Value="selectedColumn.DataOrder.Descending" class="form-check-input" aria-required="true" />
+                                    <label for="selectedColumn.DataOrder.Descending" class="form-check-label">Descending</label>
+                                    <ValidationMessage For="() => selectedColumn.DataOrder.Descending" class="text-danger" />
+                                </div>
+
+
+                            </div>
+                            <div class="tab-pane fade" id="profile-tab-pane" role="tabpanel" aria-labelledby="profile-tab" tabindex="0">
+                                <div class="form-check mb-3">
+                                    <InputCheckbox @bind-Value="selectedColumn.Properties.isIndex" class="form-check-input" aria-required="true" />
+                                    <label for="selectedColumn.Properties.isIndex" class="form-check-label">isIndex</label>
+                                    <ValidationMessage For="() => selectedColumn.Properties.isIndex" class="text-danger" />
+                                </div>
+                                <div class="form-check mb-3">
+                                    <InputCheckbox @bind-Value="selectedColumn.Properties.IndexDescending" class="form-check-input" aria-required="true" />
+                                    <label for="selectedColumn.Properties.IndexDescending" class="form-check-label">IndexDescending</label>
+                                    <ValidationMessage For="() => selectedColumn.Properties.IndexDescending" class="text-danger" />
+                                </div>
+                                <div class="form-check mb-3">
+                                    <InputCheckbox @bind-Value="selectedColumn.Properties.isUnique" class="form-check-input" aria-required="true" />
+                                    <label for="selectedColumn.Properties.isUnique" class="form-check-label">isUnique</label>
+                                    <ValidationMessage For="() => selectedColumn.Properties.isUnique" class="text-danger" />
+                                </div>
+                                <div class="form-check mb-3">
+                                    <InputCheckbox @bind-Value="selectedColumn.Properties.AllowInsert" class="form-check-input" aria-required="true" />
+                                    <label for="AllowInsert" class="form-check-label">AllowInsert</label>
+                                    <ValidationMessage For="() => selectedColumn.Properties.AllowInsert" class="text-danger" />
+                                </div>
+                                <div class="form-check mb-3">
+                                    <InputCheckbox @bind-Value="selectedColumn.Properties.AllowNull" class="form-check-input" aria-required="true" />
+                                    <label for="AllowNull" class="form-check-label">AllowNull</label>
+                                    <ValidationMessage For="() => selectedColumn.Properties.AllowNull" class="text-danger" />
+                                </div>
+                                <div class="form-check mb-3">
+                                    <InputCheckbox @bind-Value="selectedColumn.Properties.AllowUpdate" class="form-check-input" aria-required="true" />
+                                    <label for="AllowUpdate" class="form-check-label">AllowUpdate</label>
+                                    <ValidationMessage For="() => selectedColumn.Properties.AllowUpdate" class="text-danger" />
+                                </div>
+                           
+                                <div class="form-check mb-3">
+                                    <InputCheckbox @bind-Value="selectedColumn.Properties.isReadonly" class="form-check-input" aria-required="true" />
+                                    <label for="isReadonly" class="form-check-label">isReadonly</label>
+                                    <ValidationMessage For="() => selectedColumn.Properties.isReadonly" class="text-danger" />
+                                </div>
+
+
+                                <div class="form-floating mb-3">
+                                    <InputSelect @bind-Value="selectedColumn.Properties.SelectBehavior" class="form-control">
+                                        @{
+
+                                            foreach (var dt in Enum.GetValues(typeof(DAC.core.enums.SelectBehaviors)))
+                                            {
+                                                <option value="@dt">@dt.ToString()</option>
+                                            }
+                                        }
+                                    </InputSelect>
+                                    <label for="SelectBehavior" class="form-label">Select Behavior</label>
+                                    <ValidationMessage For="() => selectedColumn.Properties.SelectBehavior" class="text-danger" />
+                                    <span>
+                                        strict: Uses listing permissions in the table configuration.<br />
+                                        always: In any case, it is added to the select clause.<br />
+                                        none: In any case, it is't added to the select clause.
+                                    </span>
+                                </div>
+                            </div>
+                            <div class="tab-pane fade" id="contact-tab-pane" role="tabpanel" aria-labelledby="contact-tab" tabindex="0">
+                                <div class="form-floating mb-3">
+                                    <InputSelect @bind-Value="selectedColumn.Binding.Server" class="form-control" @oninput="((v)=>{
+                                        if(v.Value !=null){
+                                            this.changeBindingDatabase(long.Parse(v.Value.ToString()));
+                                        }
+                                    })">
+                                        <option value="0"></option>
+                                        @{
+
+                                            foreach (var dt in dbContext.SqlServers)
+                                            {
+                                                <option value="@dt.Id">@dt.Description</option>
+                                            }
+                                        }
+                                    </InputSelect>
+                                    <label for="selectedColumn.Binding.Server" class="form-label">Server</label>
+                                    <ValidationMessage For="() =>selectedColumn.Binding.Server" class="text-danger" />
+                                </div>
+
+                                <div class="form-floating mb-3">
+                                    <InputSelect @bind-Value="selectedColumn.Binding.Database" class="form-control" @oninput="((v)=>{
+                                        if(v.Value !=null){
+                                             this.changeBindingTables(long.Parse(v.Value.ToString()));
+                                        }
+                                    })">
+                                        <option value="0"></option>
+                                        @{
+
+                                            foreach (var dt in bindingDatabases)
+                                            {
+                                                <option value="@dt.Id">@dt.Description</option>
+                                            }
+                                        }
+                                    </InputSelect>
+                                    <label for="selectedColumn.Binding.Database" class="form-label">Database</label>
+                                    <ValidationMessage For="() =>selectedColumn.Binding.Database" class="text-danger" />
+                                </div>
+
+                                <div class="form-floating mb-3">
+                                    <InputSelect @bind-Value="selectedColumn.Binding.Table" class="form-control" @oninput="((v)=>{
+                                        if(v.Value !=null){
+                                            this.changeBindingColumns(long.Parse(v.Value.ToString()));
+                                        }
+                                    })">
+                                        <option value="0"></option>
+                                        @{
+
+                                            foreach (var dt in bindingTables)
+                                            {
+                                                <option value="@dt.Id">@dt.Description</option>
+                                            }
+                                        }
+                                    </InputSelect>
+                                    <label for="selectedColumn.Binding.Table" class="form-label">Table</label>
+                                    <ValidationMessage For="() =>selectedColumn.Binding.Table" class="text-danger" />
+                                </div>
+
+                                <div class="form-floating  mb-3">
+
+                                    <InputSelect @bind-Value="selectedColumn.Binding.DisplayColumns" class="form-control" >
+                                        <option></option>
+                                        @{
+                                            foreach (var dt in bindingColumns)
+                                            {
+                                                if (selectedColumn.Binding.DisplayColumns == dt.Name)
+                                                {
+                                                    <option value="@dt.Name" selected>@dt.Name - @dt.Description</option>
+                                                }
+                                                else
+                                                {
+                                                    <option value="@dt.Name">@dt.Name - @dt.Description</option>
+                                                }
+
+                                            }
+                                        }
+                                    </InputSelect> 
+
+                                    <label for="selectedColumn.Binding.DisplayColumns" class="form-label">Display Column</label>
+                                    <ValidationMessage For="() =>selectedColumn.Binding.DisplayColumns" class="text-danger" />
+                                </div>
+
+                                <div class="form-floating mb-3">
+
+                                    <InputSelect @bind-Value="selectedColumn.Binding.ValueColumn" class="form-control">
+                                        <option></option>
+                                        @{
+                                            foreach (var dt in bindingColumns)
+                                            {
+                                                if (selectedColumn.Binding.ValueColumn == dt.Name)
+                                                {
+                                                    <option value="@dt.Name" selected>@dt.Name - @dt.Description</option>
+                                                }
+                                                else
+                                                {
+                                                    <option value="@dt.Name">@dt.Name - @dt.Description</option>
+                                                }
+
+                                            }
+                                        }
+                                    </InputSelect>
+
+                                    <label for="selectedColumn.Binding.ValueColumn" class="form-label">Value Column</label>
+                                    <ValidationMessage For="() =>selectedColumn.Binding.ValueColumn" class="text-danger" />
+                                </div>
+
+
+                            </div>
+                            <div class="tab-pane fade" id="disabled-tab-pane" role="tabpanel" aria-labelledby="disabled-tab" tabindex="0">
+                                
+                                @{
+                                    foreach (var onInserting in selectedColumn.Automations)
+                                    {
+                                        // <div class="form-check mb-3">
+                                        //     <InputCheckbox @bind-Value="onInserting.RunOnListing" class="form-check-input" aria-required="true" />
+                                    //     <label for="onInserting.RunOnListing" class="form-check-label">RunOnListing</label>
+                                        //     <ValidationMessage For="() => onInserting.RunOnListing" class="text-danger" />
+                                        // </div>
+                                        // <div class="form-check mb-3">
+                                        //     <InputCheckbox @bind-Value="onInserting.RunOnUpdating" class="form-check-input" aria-required="true" />
+                                        //     <label for="onInserting.RunOnUpdating" class="form-check-label">RunOnUpdating</label>
+                                        //     <ValidationMessage For="() => onInserting.RunOnUpdating" class="text-danger" />
+                                        // </div>
+                                        // <div class="form-check mb-3">
+                                        //     <InputCheckbox @bind-Value="onInserting.RunOnCreating" class="form-check-input" aria-required="true" />
+                                        //     <label for="onInserting.RunOnCreating" class="form-check-label">RunOnCreating</label>
+                                        //     <ValidationMessage For="() => onInserting.RunOnCreating" class="text-danger" />
+                                        // </div>
+                                        // <div class="form-check mb-3">
+                                        //     <InputCheckbox @bind-Value="onInserting.RunOnDeleting" class="form-check-input" aria-required="true" />
+                                        //     <label for="onInserting.RunOnDeleting" class="form-check-label">RunOnDeleting</label>
+                                        //     <ValidationMessage For="() => onInserting.RunOnDeleting" class="text-danger" />
+                                        // </div>
+                                        if (onInserting.RunOnUpdating)
+                                        {
+                                            <h6>Run On Updating</h6>
+                                        }
+                                        else if (onInserting.RunOnCreating)
+                                        {
+                                            <h6>Run On Creating</h6>
+                                        }
+                                        <div class="form-check mb-3">
+                                            <InputCheckbox @bind-Value="onInserting.Enable" class="form-check-input" aria-required="true" />
+                                            <label for="onInserting.Enable" class="form-check-label">Enable</label>
+                                            <ValidationMessage For="() => onInserting.Enable" class="text-danger" />
+                                        </div>
+
+                                        <div class="form-check mb-3">
+                                            <InputSelect @bind-Value="onInserting.ValueSource" class="form-control">
+                                        @{
+
+                                            foreach (var dt in Enum.GetValues(typeof(DAC.core.enums.ValueAutomationTypes)))
+                                            {
+                                                <option value="@dt">@dt.ToString()</option>
+                                            }
+                                        }
+                                    </InputSelect>
+                                            <label for="onInserting.ValueSource" class="form-check-label">ValueSource</label>
+                                            <ValidationMessage For="() => onInserting.ValueSource" class="text-danger" />
+                                        </div>
+                                        <hr/>
+                                    } 
+                                }
+
+                            </div>
+                        </div>
+
+
+                    </EditForm>
+
+
+                }
+            }
+        </div>
+    </div>
+
+</div>
+
+
+@code {
+
+    public SqlManagement.models.UpdateTableInputModel Input { get; set; } = new();
+
+    [Parameter]
+    public string tableid { get; set; }
+
+    protected override async Task OnInitializedAsync()
+    {
+        Table = sm.GetTable(long.Parse(tableid)).Result;
+        ActiveColumns = Table.Columns();
+
+
+    }
+    DAC.core.models.SqlTables Table;
+    List<DAC.core.models.Columns> ActiveColumns = new List<DAC.core.models.Columns>();
+    DAC.core.models.Columns selectedColumn;
+
+    DAC.core.models.SqlDatabases[] bindingDatabases = [];
+    DAC.core.models.SqlTables[] bindingTables = [];
+    DAC.core.models.Columns[] bindingColumns = [];
+
+
+    public void changeBindingDatabase(long server)
+    {
+        bindingDatabases = dbContext.SqlDatabases.Where(q => q.ServerID == server).ToArray();
+
+        if ( this.selectedColumn.Binding.Database > 0)
+        {
+            this.changeBindingTables(this.selectedColumn.Binding.Database);
+        }
+    }
+
+    public void changeBindingTables(long database)
+    {
+        bindingTables = dbContext.SqlTables.Where(q => q.Database == database).ToArray();
+
+        if (!String.IsNullOrEmpty(this.selectedColumn.Binding.Table))
+        {
+            this.changeBindingColumns(long.Parse(this.selectedColumn.Binding.Table));
+        }
+    }
+    public void changeBindingColumns(long table)
+    {
+        var exist = dbContext.SqlTables.FirstOrDefault(q => q.Id == table);
+        if (exist != null)
+        {
+            bindingColumns = exist.Columns().ToArray();
+        }
+
+    }
+    public void addNewColumn()
+    {
+        var col = new DAC.core.models.Columns();
+        col.Automations.Add(new DAC.core.models.ColumnValueAutomation() { Enable=false, RunOnCreating = true, RunOnUpdating = false});
+        col.Automations.Add(new DAC.core.models.ColumnValueAutomation() { Enable = false, RunOnCreating = false, RunOnUpdating = true });
+        ActiveColumns.Add(col);
+        selectedColumn = col;
+    }
+
+    public void selectColumn(DAC.core.models.Columns columns)
+    {
+        
+        this.selectedColumn = columns;
+        bindingColumns = [];
+        if (columns.Binding.Server > 0){
+            this.changeBindingDatabase(columns.Binding.Server);
+        }
+        
+    }
+    public void updatetable()
+    {
+
+        var exist = sm.GetTable(long.Parse(tableid)).Result;
+        Input.Name = exist.Name;
+        Input.Description = exist.Description;
+        Input.Database = long.Parse(tableid);
+        Input.Columns = ActiveColumns;
+        Input.TableAutomations = exist.TableAutomations();
+        Input.Database = exist.Database;
+        Input.Id = exist.Id;
+        sm.UpdateTable(Input);
+        // NavManager.NavigateTo("/databases?ServerID=" + ServerID);
+    }
+
+}

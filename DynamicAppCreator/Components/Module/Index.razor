@@ -1,0 +1,209 @@
+﻿@page "/module/{moduleid}"
+
+@inject DynamicAppCreator.ModuleManagement.ModuleManagement mm;
+@inject DynamicAppCreator.SqlManagement.TableManagement tm;
+@inject DynamicAppCreator.Data.ApplicationDbContext dbContext;
+@inject NavigationManager NavManager
+@inject DynamicAppCreator.SqlManagement.DataProcessing.DataProcessing dp;
+@attribute [Authorize]
+
+@using Microsoft.AspNetCore.Authorization
+ 
+<div class="display-1">
+    @Modules.Name
+</div>
+<div class="display-4">
+    @Modules.Description
+</div>
+<hr />
+<div class="container-fluid">
+    <div class="row">
+
+    
+    <div class="col-8">
+        <table class="table table-bordered table-hover">
+            <thead>
+                <tr>
+                    @{
+                        foreach (var item in mm.GetModuleColumns(ModuleID))
+                        {
+                            <th>@item.Description</th>
+                        }
+                    }
+                    <th></th>
+                </tr>
+            </thead>
+            <thead>
+                @{
+                        foreach (System.Data.DataRow item in tm.GetData(Modules.Table, mm.GetModuleColumns(ModuleID)).Rows)
+                        {
+                             <tr>
+                                @{
+                                    foreach (var col in mm.GetModuleColumns(ModuleID))
+                                    {
+                                        <th>
+                                        
+                                        @{
+                            if (!string.IsNullOrEmpty(col.Binding.DisplayColumns) && !string.IsNullOrEmpty(col.Binding.ValueColumn))
+                            {
+                                <select disabled readonly class="form-control">
+                                                        @{
+                                                            foreach (var lookup in getLookup(col))
+                                                            {
+                                                                if (item[col.Name] == lookup.Key)
+                                                                {
+                                                                    <option selected value="@lookup.Key">@lookup.Value</option>
+                                                                }
+                                                                else
+                                                                {
+                                                                    <option value="@lookup.Key">@lookup.Value</option>
+                                                                }
+                                                                
+                                        }
+                                    }
+                                </select> 
+                            }
+                            else
+                            {
+                                                    @item[col.Name]
+                            }
+                        }
+
+                                     
+                                        
+                                        </th>
+                                    }
+                                }
+                    <th>
+                        
+                    </th>
+                </tr>
+                        }
+                }
+               
+            </thead>
+        </table>
+    </div>
+    <div class="col-4">
+        @{
+                foreach (var item in mm.GetModuleColumns(ModuleID).Where(x => x.Properties.AllowInsert == true && (!x.Properties.isPrimary || !x.Properties.isIdentity)))
+            {
+                <div class="form-floating mb-3">
+                   
+                    
+                        @{
+                            if (!string.IsNullOrEmpty(item.Binding.DisplayColumns) && !string.IsNullOrEmpty(item.Binding.ValueColumn))
+                            {
+                                <select class="form-control">
+                                    @{
+                                        foreach (var lookup in getLookup(item))
+                                        {
+                                            <option value="@lookup.Key">@lookup.Value</option>
+                                        }
+                                    }
+                                </select> 
+                            }
+                            else
+                            { 
+                                <input class="form-control" type="text" value="@getValue(item.Name)" @onchange="(s)=>{setValue  (item.Name,s.Value);}" />
+                            }
+                        }
+                        <label class="form-label">@item.Description</label>
+                </div>
+            }
+        }
+        <div>
+                <button @onclick="createNewRecord" class="btn btn-primary btn-sm">Create</button>
+        </div>
+    </div>
+    </div>
+
+</div>
+
+@code {
+
+    [Parameter]
+    public string moduleid { get; set; }
+
+    public Dictionary<string, object> createData = new Dictionary<string, object>();
+
+    public object getValue(string name)
+    {
+        var field = createData.FirstOrDefault(q => q.Key == name);
+        if (field.Value != null)
+        {
+            return field.Value;
+        }
+        else
+        {
+            return "";
+        } 
+    }
+
+    public void setValue(string name,object value)
+    {
+        createData[name] = value; 
+    }
+
+    public void createNewRecord()
+    {
+        tm.AddData(Modules.Table, mm.GetModuleColumns(ModuleID), createData);
+
+        createData = new Dictionary<string, object>();
+        foreach (var item in mm.GetModuleColumns(ModuleID))
+        {
+            createData.TryAdd(item.Name, "");
+        }
+    }
+
+    public Dictionary<object, object> getLookup(DAC.core.models.Columns col)
+    {
+        var result = new System.Collections.Generic.Dictionary<object, object>();
+        var data = tm.GetData(long.Parse(col.Binding.Table), new List<string>() { col.Binding.DisplayColumns, col.Binding.ValueColumn });
+        foreach (System.Data.DataRow item in data.Rows)
+        {
+            if (!result.ContainsKey(item[col.Binding.ValueColumn]))
+            {
+                result.Add(item[col.Binding.ValueColumn], item[col.Binding.DisplayColumns]);    
+            } 
+        }
+        return result;
+
+    }
+
+    public long ModuleID;
+    public DAC.core.models.Modules Modules { get; set; }
+    protected override async Task OnInitializedAsync()
+    {
+        long.TryParse(moduleid, out ModuleID);
+        Modules = mm.GetModule(ModuleID);
+        var DbContextModel =  dp.GetDbSet(Modules.Table);
+
+        foreach (var item in mm.GetModuleColumns(ModuleID))
+        {
+            createData.TryAdd(item.Name, ""); 
+        } 
+        NavManager.LocationChanged += LocationChanged; 
+        base.OnInitialized();
+
+    }
+
+    void LocationChanged(object sender, LocationChangedEventArgs e)
+    {
+        
+        NavManager.Refresh(true);
+        createData = new Dictionary<string, object>();
+        NavManager.GetUriWithQueryParameter("{moduleid}", moduleid);
+        long.TryParse(moduleid, out ModuleID);
+        Modules = mm.GetModule(long.Parse(moduleid));
+        var DbContextModel = dp.GetModel(Modules.Table);
+
+        foreach (var item in mm.GetModuleColumns(ModuleID))
+        {
+            createData.TryAdd(item.Name, "");
+        }
+
+    }
+    
+
+}

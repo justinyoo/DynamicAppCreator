@@ -1,0 +1,10 @@
+﻿@inherits LayoutComponentBase
+<div class="btn-group" role="group" aria-label="Actions">
+    @ChildContent
+</div>
+@code { 
+    
+    [Parameter]
+    public RenderFragment ChildContent { get; set; }
+
+}

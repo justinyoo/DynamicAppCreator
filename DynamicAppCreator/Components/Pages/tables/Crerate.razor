@@ -1,0 +1,60 @@
+﻿@page "/tables/{database}/create"
+
+@using Microsoft.AspNetCore.Authorization
+
+@inject DynamicAppCreator.SqlManagement.TableManagement sm;
+@inject NavigationManager NavManager
+@attribute [Authorize]
+<PageTitle>Servers</PageTitle>
+<DynamicAppCreator.Components.Common.Toolbar> 
+    <DynamicAppCreator.Components.Common.ToolButton Uri="@($"/tables/?ServerID={database}")">BACK TO LIST</DynamicAppCreator.Components.Common.ToolButton>
+</DynamicAppCreator.Components.Common.Toolbar>
+ 
+<EditForm Model="Input" OnValidSubmit="addnewServer">
+    <div>
+         
+        <div class="form-floating mb-3">
+            <InputText readonly @bind-Value="Input.Name" class="form-control" aria-required="true" />
+            <label for="Name" class="form-label">Name (readonly|auto create on save)</label>
+            <ValidationMessage For="() => Input.Name" class="text-danger" />
+        </div>
+        <div class="form-floating mb-3">
+            <InputText @bind-Value="Input.Description" class="form-control" aria-required="true" />
+            <label for="Description" class="form-label">Alias|Description</label>
+            <ValidationMessage For="() => Input.Description" class="text-danger" />
+        </div>  
+    </div> 
+    <button type="submit" class="btn btn-primary">Create</button>
+</EditForm>
+
+@code {
+
+
+
+    [SupplyParameterFromForm]
+    public SqlManagement.models.CreateTableInputModel Input { get; set; } = new(); 
+    [Parameter]
+    public string database { get; set; }
+
+    public void addnewServer()
+    {
+
+        Input.Database =long.Parse(database);
+        Input.Columns = new List<DAC.core.models.Columns>()
+        {
+            new DAC.core.models.Columns()
+            {
+                Name  = "id",
+                Description = "id",
+                Properties = new DAC.core.models.ColumnProperties()
+                {
+                    isIdentity=true,
+                    isPrimary = true,
+                },
+                DataType = Microsoft.SqlServer.Management.Smo.SqlDataType.BigInt
+            }
+        };
+        sm.AddTable(Input);
+        // NavManager.NavigateTo("/databases?ServerID=" + ServerID);
+    }
+}

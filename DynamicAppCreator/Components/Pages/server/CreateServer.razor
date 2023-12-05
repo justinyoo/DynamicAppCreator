@@ -1,0 +1,76 @@
+﻿@page "/servers/create"
+
+@using Microsoft.AspNetCore.Authorization
+
+@inject DynamicAppCreator.SqlManagement.ServerManagement sm;
+@inject NavigationManager NavManager
+@attribute [Authorize]
+<PageTitle>Servers</PageTitle>
+
+
+<a href="/servers" class="btn btn-primary">GO BACK</a>
+<table>
+
+    <tbody>
+        @foreach (var item in sm.GetServers().Result)
+        {
+            <tr>
+                <td>@item.Name</td>
+                <td>@item.Description</td>
+                <td>@item.Server</td>
+                <td>@item.DefaultDb</td>
+            </tr>
+        }
+    </tbody>
+</table>
+<EditForm Model="Input" OnValidSubmit="addnewServer"> 
+    <div>
+        <div class="form-floating mb-3">
+            <InputText @bind-Value="Input.Server" class="form-control" aria-required="true" />
+            <label for="Server" class="form-label">Server</label>
+            <ValidationMessage For="() => Input.Server" class="text-danger" />
+        </div>
+        <div class="form-floating mb-3">
+            <InputText @bind-Value="Input.Username" class="form-control" aria-required="true" />
+            <label for="Username" class="form-label">Username</label>
+            <ValidationMessage For="() => Input.Username" class="text-danger" />
+        </div>
+        <div class="form-floating mb-3">
+            <InputText type="password" @bind-Value="Input.Password" class="form-control" aria-required="true" />
+            <label  for="Password" class="form-label">Password</label>
+            <ValidationMessage For="() => Input.Password" class="text-danger" />
+        </div>
+        <div class="form-floating mb-3">
+            <InputText @bind-Value="Input.DefaultDb" class="form-control" aria-required="true" />
+            <label for="Description" class="form-label">Default DB</label>
+            <ValidationMessage For="() => Input.DefaultDb" class="text-danger" />
+        </div>
+        <div class="form-floating mb-3">
+            <InputText @bind-Value="Input.Name" class="form-control" aria-required="true" />
+            <label for="Name" class="form-label">Name</label>
+            <ValidationMessage For="() => Input.Name" class="text-danger" />
+        </div>
+
+        <div class="form-floating mb-3">
+            <InputText @bind-Value="Input.Description" class="form-control" aria-required="true" />
+            <label for="Description" class="form-label">Description</label>
+            <ValidationMessage For="() => Input.Description" class="text-danger" />
+        </div>
+
+
+    </div>
+
+    <button type="submit" class="btn btn-primary">Create</button>
+</EditForm>
+
+@code{
+
+    [SupplyParameterFromForm]
+    private DynamicAppCreator.SqlManagement.models.CreateServerInputModel Input { get; set; } = new();
+
+    public void addnewServer(){
+        sm.AddServer(Input);
+        DynamicAppCreator.Models.CommonModel.ServerCount = sm.GetServers().Result.Count;
+        NavManager.NavigateTo("/servers");
+    }
+}

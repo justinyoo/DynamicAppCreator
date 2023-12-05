@@ -1,0 +1,154 @@
+﻿@page "/modules"
+@inject DynamicAppCreator.ModuleManagement.ModuleManagement mm;
+@inject DynamicAppCreator.Data.ApplicationDbContext dbContext;
+@inject NavigationManager NavManager
+@attribute [Authorize]
+@using Microsoft.AspNetCore.Authorization
+
+<h3>Menu Management</h3>
+
+
+<ul class="nav nav-tabs" id="myTab" role="tablist">
+    <li class="nav-item" role="presentation">
+        <button class="nav-link active" id="home-tab" data-bs-toggle="tab" data-bs-target="#home-tab-pane" type="button" role="tab" aria-controls="home-tab-pane" aria-selected="true">Modules</button>
+    </li>
+    <li class="nav-item" role="presentation">
+        <button class="nav-link" id="profile-tab" data-bs-toggle="tab" data-bs-target="#profile-tab-pane" type="button" role="tab" aria-controls="profile-tab-pane" aria-selected="false">Create Module</button>
+    </li>
+
+</ul>
+<div class="tab-content" id="myTabContent">
+    <div class="tab-pane fade show active" id="home-tab-pane" role="tabpanel" aria-labelledby="home-tab" tabindex="0">
+        <table class="table table-hover table-bordered">
+            <tbody>
+                @{
+                    foreach (var item in mm.GetAllModules())
+                    {
+                        <tr>
+                            <td>@item.Name</td>
+                            <td>@item.Description</td>
+                            <td>@item.ShowInMenu</td>
+                            <td>@item.MenuTitle</td>
+                        </tr>
+                    }
+                }
+            </tbody>
+        </table>
+    </div>
+    <div class="tab-pane fade" id="profile-tab-pane" role="tabpanel" aria-labelledby="profile-tab" tabindex="0">
+        <EditForm Model="Input" OnValidSubmit="addnewmodule">
+            <div>
+
+                <div class="form-floating mb-3">
+                    <InputSelect @bind-Value="SelectedServer" class="form-control" @oninput="((v)=>{
+                                        if(v.Value !=null){
+                                            this.changeBindingDatabase(long.Parse(v.Value.ToString()));
+                                        }
+                                    })">
+                        <option value="0"></option>
+                        @{
+                            foreach (var dt in dbContext.SqlServers)
+                            {
+                                <option value="@dt.Id">@dt.Description</option>
+                            }
+                        }
+                    </InputSelect>
+                    <label class="form-label">Server</label>
+
+                </div>
+
+
+                <div class="form-floating mb-3">
+                    <InputSelect @bind-Value="SelectedDatabase" class="form-control" @oninput="((v)=>{
+                                        if(v.Value !=null){
+                                             this.changeBindingTables(long.Parse(v.Value.ToString()));
+                                        }
+                                    })">
+                        <option value="0"></option>
+                        @{
+
+                            foreach (var dt in bindingDatabases)
+                            {
+                                <option value="@dt.Id">@dt.Description</option>
+                            }
+                        }
+                    </InputSelect>
+                    <label for="selectedColumn.Binding.Database" class="form-label">Database</label>
+                </div>
+
+                <div class="form-floating mb-3">
+                    <InputSelect @bind-Value="Input.Table" class="form-control">
+                        <option value="0"></option>
+                        @{
+
+                            foreach (var dt in bindingTables)
+                            {
+                                <option value="@dt.Id">@dt.Description</option>
+                            }
+                        }
+                    </InputSelect>
+                    <label for="Input.Table" class="form-label">Table</label>
+                    <ValidationMessage For="() =>Input.Table" class="text-danger" />
+                </div>
+
+
+                <div class="form-floating mb-3">
+                    <InputText @bind-Value="Input.Name" class="form-control" aria-required="true" />
+                    <label for="Name" class="form-label">NAme</label>
+                    <ValidationMessage For="() => Input.Name" class="text-danger" />
+                </div>
+                <div class="form-floating mb-3">
+                    <InputText @bind-Value="Input.Description" class="form-control" aria-required="true" />
+                    <label for="Description" class="form-label">Description</label>
+                    <ValidationMessage For="() => Input.Description" class="text-danger" />
+                </div>
+
+                <div class="form-check mb-3">
+                    <InputCheckbox @bind-Value="Input.ShowInMenu" class="form-check-input" aria-required="true" />
+                    <label for="Input.ShowInMenu" class="form-check-label">ShowInMenu</label>
+                    <ValidationMessage For="() => Input.ShowInMenu" class="text-danger" />
+                </div>
+                @{
+                    if (Input.ShowInMenu)
+                    {
+                        <div class="form-floating mb-3">
+                            <InputText @bind-Value="Input.MenuTitle" class="form-control" aria-required="true" />
+                            <label for="MenuTitle" class="form-label">MenuTitle</label>
+                            <ValidationMessage For="() => Input.MenuTitle" class="text-danger" />
+                        </div>
+                    }
+                }
+
+            </div>
+            <button type="submit" class="btn btn-primary">Create</button>
+        </EditForm>
+    </div>
+
+</div>
+
+
+@code {
+    public DAC.core.models.Modules Input { get; set; } = new();
+    public long SelectedServer;
+    public long SelectedDatabase;
+    DAC.core.models.SqlDatabases[] bindingDatabases = [];
+    DAC.core.models.SqlTables[] bindingTables = [];
+    public void addnewmodule()
+    {
+        Input.Settings = "{}";
+        dbContext.Modules.Add(Input).State =  Microsoft.EntityFrameworkCore.EntityState.Added;
+        dbContext.SaveChanges();
+        NavManager.NavigateTo("/modules");
+    }
+
+    public void changeBindingDatabase(long server)
+    {
+        bindingDatabases = dbContext.SqlDatabases.Where(q => q.ServerID == server).ToArray();
+
+    }
+
+    public void changeBindingTables(long database)
+    {
+        bindingTables = dbContext.SqlTables.Where(q => q.Database == database).ToArray();
+    }
+}

@@ -1,0 +1,41 @@
+﻿@page "/servers"
+
+@using Microsoft.AspNetCore.Authorization
+
+@inject DynamicAppCreator.SqlManagement.ServerManagement sm;
+
+@attribute [Authorize]
+<PageTitle >Servers</PageTitle>
+
+ 
+<a href="/servers/create"  class="btn btn-primary">Add New Sql Server</a>
+<table class="table">
+    <thead>
+        <tr>
+            <th>Name</th>
+            <th>Description</th>
+            <th>Server</th>
+            <th>User Name</th>
+            <th>Default Db</th>
+            <th width="100"></th>
+        </tr>
+    </thead>
+    <tbody>
+        @foreach (var item in sm.GetServers().Result)
+        {
+            <tr>
+                <td>@item.Name</td>
+                <td>@item.Description</td>
+                <td>@item.Server</td>
+                <td>@item.Username</td>
+                <td>@item.DefaultDb</td>
+                <td>
+                    <div class="btn-group" role="group" aria-label="Basic example">
+                        <a href="/servers/edit?ServerID=@item.Id" type="button" class="btn btn-link">Edit</a>
+                        <a href="/databases?ServerID=@item.Id" type="button" class="btn btn-link">Databases</a>
+                    </div>
+                </td>
+            </tr>
+        }
+    </tbody>
+</table>

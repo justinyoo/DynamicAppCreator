@@ -1,0 +1,64 @@
+﻿@page "/databases/edit/{databaseid}"
+
+@using Microsoft.AspNetCore.Authorization
+
+@inject DynamicAppCreator.SqlManagement.DatabaseManagement sm;
+@inject NavigationManager NavManager
+@attribute [Authorize]
+<PageTitle>Servers</PageTitle>
+<DynamicAppCreator.Components.Common.Toolbar> 
+    <DynamicAppCreator.Components.Common.ToolButton Uri="@($"/databases?ServerID={Input?.Server}")">BACK TO LIST</DynamicAppCreator.Components.Common.ToolButton>
+</DynamicAppCreator.Components.Common.Toolbar>
+ 
+<EditForm Model="Input" OnValidSubmit="updatedatabase">
+    <div> 
+        <div class="form-floating mb-3">
+            <InputText @bind-Value="Input.Name" class="form-control" aria-required="true" />
+            <label for="Name" class="form-label">Name</label>
+            <ValidationMessage For="() => Input.Name" class="text-danger" />
+        </div>
+        <div class="form-floating mb-3">
+            <InputText @bind-Value="Input.Description" class="form-control" aria-required="true" />
+            <label for="Description" class="form-label">Description</label>
+            <ValidationMessage For="() => Input.Description" class="text-danger" />
+        </div>  
+    </div>
+
+    <button type="submit" class="btn btn-primary">Save Changes</button>
+</EditForm>
+
+@code {
+    [Parameter]
+    public string databaseid { get; set; }
+
+
+    private DynamicAppCreator.SqlManagement.models.UpdateDatabaseInputModel Input = new(); 
+
+ 
+
+
+    protected override async Task OnInitializedAsync()
+    {
+        Int64.TryParse(databaseid, out long id);
+        var s = sm.GetDatabase(id);
+        if (s.state)
+        {
+            Input.Server = s.Result.ServerID;
+            Input.Id = s.Result.Id;
+            Input.Name = s.Result.Name;
+            Input.Description = s.Result.Description; 
+        }
+        else
+        {
+            NavManager.NavigateTo("/servers");
+        }
+
+    }
+
+    public void updatedatabase()
+    { 
+          
+        sm.UpdateDatabase(Input);
+        NavManager.NavigateTo("/databases?ServerID=" + Input.Server);
+    }
+}

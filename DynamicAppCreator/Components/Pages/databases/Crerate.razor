@@ -1,0 +1,45 @@
+﻿@page "/databases/create"
+
+@using Microsoft.AspNetCore.Authorization
+
+@inject DynamicAppCreator.SqlManagement.DatabaseManagement sm;
+@inject NavigationManager NavManager
+@attribute [Authorize]
+<PageTitle>Servers</PageTitle>
+<DynamicAppCreator.Components.Common.Toolbar> 
+    <DynamicAppCreator.Components.Common.ToolButton Uri="@($"/databases?ServerID={ServerID}")">BACK TO LIST</DynamicAppCreator.Components.Common.ToolButton>
+</DynamicAppCreator.Components.Common.Toolbar>
+ 
+<EditForm Model="Input" OnValidSubmit="addnewServer">
+    <div>
+         
+        <div class="form-floating mb-3">
+            <InputText @bind-Value="Input.Name" class="form-control" aria-required="true" />
+            <label for="Name" class="form-label">Name</label>
+            <ValidationMessage For="() => Input.Name" class="text-danger" />
+        </div>
+        <div class="form-floating mb-3">
+            <InputText @bind-Value="Input.Description" class="form-control" aria-required="true" />
+            <label for="Description" class="form-label">Description</label>
+            <ValidationMessage For="() => Input.Description" class="text-danger" />
+        </div> 
+
+    </div>
+
+    <button type="submit" class="btn btn-primary">Create</button>
+</EditForm>
+
+@code {
+    [SupplyParameterFromQuery]
+    private long ServerID { get; set; }
+
+    [SupplyParameterFromForm]
+    public SqlManagement.models.CreateDatabaseInputModel Input { get; set; } = new();
+
+    public void addnewServer()
+    {
+        Input.Server = ServerID;
+        sm.AddDatabase(Input);
+        NavManager.NavigateTo("/databases?ServerID=" + ServerID);
+    }
+}

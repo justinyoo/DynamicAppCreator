@@ -1,0 +1,31 @@
+﻿ @using Microsoft.AspNetCore.Components.Sections
+
+<table class="table table-bordered table-hover table-responsive  ">
+    <thead>
+        <tr>
+            <th>A</th>
+            <th>A</th>
+            <th>A</th>
+        </tr>
+    </thead>
+    <tbody>
+        <tr>
+            <td>A</td>
+            <td>A</td>
+            <td>A</td>
+        </tr>
+    </tbody>
+</table>
+
+<SectionOutlet SectionName="columns" />
+<SectionOutlet SectionName="rows" />
+@ChildContent
+@code {
+
+
+    [Parameter]
+    public RenderFragment ChildContent { get; set; }
+
+    [Parameter]
+    public GridSettings Settings { get; set; } = new();
+}

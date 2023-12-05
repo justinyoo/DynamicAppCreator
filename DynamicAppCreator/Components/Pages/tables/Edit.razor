@@ -1,0 +1,58 @@
+﻿@page "/tables/{tableid}/edit"
+
+@using Microsoft.AspNetCore.Authorization
+
+@inject DynamicAppCreator.SqlManagement.TableManagement sm;
+@inject NavigationManager NavManager
+@attribute [Authorize]
+<PageTitle>Servers</PageTitle>
+<DynamicAppCreator.Components.Common.Toolbar> 
+    <DynamicAppCreator.Components.Common.ToolButton Uri="@($"/tables/{Input.Database}")">BACK TO LIST</DynamicAppCreator.Components.Common.ToolButton>
+</DynamicAppCreator.Components.Common.Toolbar>
+ 
+<EditForm Model="Input" OnValidSubmit="updatetable">
+    <div>
+         
+        <div class="form-floating mb-3">
+            <InputText readonly @bind-Value="Input.Name" class="form-control" aria-required="true" />
+            <label for="Name" class="form-label">Name (readonly|auto create on save)</label>
+            <ValidationMessage For="() => Input.Name" class="text-danger" />
+        </div>
+        <div class="form-floating mb-3">
+            <InputText @bind-Value="Input.Description" class="form-control" aria-required="true" />
+            <label for="Description" class="form-label">Alias|Description</label>
+            <ValidationMessage For="() => Input.Description" class="text-danger" />
+        </div>  
+    </div> 
+    <button type="submit" class="btn btn-primary">Create</button>
+</EditForm>
+
+@code {
+
+
+    public SqlManagement.models.UpdateTableInputModel Input { get; set; } = new(); 
+    [Parameter]
+    public string tableid { get; set; }
+
+    protected override async Task OnInitializedAsync()
+    { 
+        var exist = sm.GetTable(long.Parse(tableid)).Result; 
+        Input.Name = exist.Name;
+        Input.Database = exist.Database;
+        Input.Description = exist.Description;
+    }
+
+    public void updatetable()
+    { 
+
+        var exist = sm.GetTable(long.Parse(tableid)).Result;
+
+        Input.Database = long.Parse(tableid);
+        Input.Columns = exist.Columns();
+        Input.TableAutomations = exist.TableAutomations();
+        Input.Database = exist.Database;
+        Input.Id = exist.Id;
+        sm.UpdateTable(Input);
+        // NavManager.NavigateTo("/databases?ServerID=" + ServerID);
+    }
+}

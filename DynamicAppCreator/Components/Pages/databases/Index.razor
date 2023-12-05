@@ -1,0 +1,47 @@
+﻿@page "/databases"
+
+@using Microsoft.AspNetCore.Authorization
+@using DynamicAppCreator.Components.Common
+@using Microsoft.AspNetCore.Components.Sections
+
+@inject DynamicAppCreator.SqlManagement.DatabaseManagement sm;
+
+@attribute [Authorize]
+<PageTitle>Databases</PageTitle>
+
+<Toolbar>
+    <ToolButton Uri="@($"/databases/create?ServerID={ServerID}")">CREATE</ToolButton>
+    <ToolButton Uri="/servers">BACK TO LIST</ToolButton>
+</Toolbar>
+
+@ServerID
+
+<table class="table">
+    <thead>
+        <tr>
+            <th>Name</th>
+            <th>Description</th>
+            <th width="100"></th>
+        </tr>
+    </thead>
+    <tbody>
+        @foreach (var item in sm.List(ServerID).Result)
+        {
+            <tr>
+                <td>@item.Name</td>
+                <td>@item.Description</td> 
+                <td>
+                    <div class="btn-group" role="group" aria-label="Basic example">
+                        <a href="/databases/edit/@item.Id" type="button" class="btn btn-link">Edit</a>
+                        <a href="/tables/@item.Id" type="button" class="btn btn-link">Tables</a>
+                    </div>
+                </td>
+            </tr>
+        }
+    </tbody>
+</table>
+ 
+@code { 
+    [SupplyParameterFromQuery]
+    private long ServerID { get; set; } 
+}
